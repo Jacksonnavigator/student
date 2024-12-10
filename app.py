@@ -22,7 +22,7 @@ def login():
     password = st.sidebar.text_input("Password", type="password")
     if st.sidebar.button("Login"):
         user = session.query(User).filter_by(username=username).first()
-        if user and check_password(password, user.password.encode('utf-8')):
+        if user and check_password(password, user.password):  # Corrected here
             st.session_state['user'] = user
             st.success(f"Welcome {user.username}!")
             return user
