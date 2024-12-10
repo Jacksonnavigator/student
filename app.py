@@ -59,21 +59,27 @@ def teacher_dashboard():
     if action == "Upload Results":
         st.subheader("Upload Results")
         student_id = st.number_input("Student ID", min_value=1, step=1)
-        subject = st.selectbox("Subject", SUBJECTS)
-        marks = st.number_input("Marks", min_value=0, max_value=100, step=1)
-        grade = st.text_input("Grade")
+        student = session.query(Student).filter_by(id=student_id).first()
         
-        if st.button("Upload"):
-            result = Result(student_id=student_id, subject=subject, marks=marks, grade=grade)
-            session.add(result)
-            session.commit()
-            st.success(f"Result for {subject} uploaded successfully!")
+        if student:
+            st.write(f"Student Name: {student.name}")
+            subject = st.selectbox("Subject", SUBJECTS)
+            marks = st.number_input("Marks", min_value=0, max_value=100, step=1)
+            grade = st.text_input("Grade")
+            
+            if st.button("Upload"):
+                result = Result(student_id=student_id, subject=subject, marks=marks, grade=grade)
+                session.add(result)
+                session.commit()
+                st.success(f"Result for {subject} uploaded successfully!")
+        else:
+            st.error("Student ID not found.")
     
     elif action == "View Results":
         st.subheader("View All Results")
         results = session.query(Result).all()
         if results:
-            data = [{"Student ID": r.student_id, "Subject": r.subject, "Marks": r.marks, "Grade": r.grade} for r in results]
+            data = [{"Student ID": r.student_id, "Student Name": r.student.name, "Subject": r.subject, "Marks": r.marks, "Grade": r.grade} for r in results]
             st.table(pd.DataFrame(data))
         else:
             st.info("No results uploaded yet.")
