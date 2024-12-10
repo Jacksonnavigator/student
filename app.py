@@ -8,6 +8,12 @@ import bcrypt
 Session = sessionmaker(bind=engine)
 session = Session()
 
+# Predefined subjects
+SUBJECTS = [
+    "Mathematics", "English", "Geography", "History",
+    "Physics", "Chemistry", "Biology", "Civics", "Kiswahili"
+]
+
 # Helper functions
 def hash_password(password):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
@@ -53,7 +59,7 @@ def teacher_dashboard():
     if action == "Upload Results":
         st.subheader("Upload Results")
         student_id = st.number_input("Student ID", min_value=1, step=1)
-        subject = st.text_input("Subject")
+        subject = st.selectbox("Subject", SUBJECTS)
         marks = st.number_input("Marks", min_value=0, max_value=100, step=1)
         grade = st.text_input("Grade")
         
@@ -61,7 +67,7 @@ def teacher_dashboard():
             result = Result(student_id=student_id, subject=subject, marks=marks, grade=grade)
             session.add(result)
             session.commit()
-            st.success("Result uploaded successfully!")
+            st.success(f"Result for {subject} uploaded successfully!")
     
     elif action == "View Results":
         st.subheader("View All Results")
@@ -81,8 +87,16 @@ def parent_dashboard():
         for student in students:
             st.subheader(f"Results for {student.name}")
             results = session.query(Result).filter_by(student_id=student.id).all()
-            data = [{"Subject": r.subject, "Marks": r.marks, "Grade": r.grade} for r in results]
-            st.table(pd.DataFrame(data))
+            if results:
+                data = [{"Subject": r.subject, "Marks": r.marks, "Grade": r.grade} for r in results]
+                # Reorder data for display
+                ordered_data = {subject: None for subject in SUBJECTS}
+                for result in data:
+                    ordered_data[result["Subject"]] = result
+                final_data = [{"Subject": subject, "Marks": ordered_data[subject]["Marks"], "Grade": ordered_data[subject]["Grade"]} if ordered_data[subject] else {"Subject": subject, "Marks": "N/A", "Grade": "N/A"} for subject in SUBJECTS]
+                st.table(pd.DataFrame(final_data))
+            else:
+                st.info("No results found for this student.")
     else:
         st.info("No results found for your children.")
 
