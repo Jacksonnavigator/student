@@ -8,8 +8,8 @@ class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
     username = Column(String, unique=True)
-    password = Column(String)
-    role = Column(String)  # 'teacher' or 'parent'
+    password = Column(String)  # Stored as hashed passwords
+    role = Column(String)      # 'teacher' or 'parent'
 
 class Student(Base):
     __tablename__ = 'students'
