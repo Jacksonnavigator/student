@@ -104,34 +104,42 @@ def teacher_dashboard():
 # Dashboard for parents
 def parent_dashboard():
     st.title("Parent Dashboard")
-    parent_id = st.session_state['user'].id
-    students = session.query(Student).filter_by(parent_id=parent_id).all()
     
-    if students:
-        for student in students:
+    # Input for student ID and name
+    student_id = st.number_input("Enter Student ID", min_value=1, step=1)
+    student_name = st.text_input("Enter Student Name")
+    
+    if st.button("View Results"):
+        # Validate student
+        student = session.query(Student).filter_by(id=student_id, name=student_name).first()
+        
+        if student:
             st.subheader(f"Results for {student.name}")
             
-            # Fetch results for the current student
-            results = session.query(Result).filter_by(student_id=student.id).all()
+            # Fetch results for the student
+            results = session.query(Result).filter_by(student_id=student_id).all()
             
-            # Initialize the data dictionary
-            data = {subject: {"Marks": "N/A", "Grade": "N/A"} for subject in SUBJECTS}
-            
-            # Populate data with results
-            for result in results:
-                data[result.subject] = {"Marks": result.marks, "Grade": result.grade}
-            
-            # Prepare table data
-            table_data = {
-                "Student Name": [student.name],
-                **{f"{subject} (Marks)": [data[subject]["Marks"]] for subject in SUBJECTS},
-                **{f"{subject} (Grade)": [data[subject]["Grade"]] for subject in SUBJECTS},
-            }
-            
-            # Display the table
-            st.table(pd.DataFrame(table_data))
-    else:
-        st.info("No results found for your children.")
+            if results:
+                # Initialize the data dictionary
+                data = {subject: {"Marks": "N/A", "Grade": "N/A"} for subject in SUBJECTS}
+                
+                # Populate data with results
+                for result in results:
+                    data[result.subject] = {"Marks": result.marks, "Grade": result.grade}
+                
+                # Prepare table data
+                table_data = {
+                    "Student Name": [student.name],
+                    **{f"{subject} (Marks)": [data[subject]["Marks"]] for subject in SUBJECTS},
+                    **{f"{subject} (Grade)": [data[subject]["Grade"]] for subject in SUBJECTS},
+                }
+                
+                # Display the table
+                st.table(pd.DataFrame(table_data))
+            else:
+                st.info(f"No results found for {student.name}.")
+        else:
+            st.error("Student ID and name do not match any records.")
 
 # Main app logic
 def main():
