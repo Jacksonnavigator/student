@@ -107,11 +107,12 @@ def view_results(student_id, student_name):
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
+# Teacher dashboard
 def teacher_dashboard():
     st.title("Teacher Dashboard")
-    tab1, tab2 = st.tabs(["Upload Results", "View All Results", "Edit Results"])
+    tab1, tab2, tab3 = st.tabs(["Upload Results", "View All Results", "Edit Results"])
 
-    # Tab 1: Upload Results (already in your original code)
+    # Tab 1: Upload Results
     with tab1:
         st.subheader("Upload Results")
         student_name = st.text_input("Student Name")
@@ -136,7 +137,7 @@ def teacher_dashboard():
             except Exception as e:
                 st.error(f"An error occurred: {str(e)}")
 
-    # Tab 2: View All Results (already in your original code)
+    # Tab 2: View All Results
     with tab2:
         st.subheader("All Student Results")
         students = session.query(Student).all()
@@ -219,7 +220,6 @@ def teacher_dashboard():
         else:
             st.error("Student not found.")
 
-
 # Bulk upload for results
 def bulk_upload():
     uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
@@ -268,58 +268,30 @@ def plot_performance(student_id):
         marks = [result.marks for result in results]
 
         plt.figure(figsize=(10, 5))
-        plt.bar(subjects, marks, color='skyblue')
+        plt.bar(subjects, marks)
         plt.xlabel("Subjects")
         plt.ylabel("Marks")
-        plt.title("Performance Trend")
+        plt.title("Student Performance Trend")
         st.pyplot(plt)
     else:
-        st.info("No results available for trend analysis.")
+        st.info("No results available for the student.")
 
-# PDF generation
+# Generate student report PDF
 def generate_pdf(student_id, student_name):
     results = session.query(Result).filter_by(student_id=student_id).all()
     if results:
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt=f"Results for {student_name}", ln=True, align='C')
+
+        pdf.cell(200, 10, txt=f"Report for {student_name}", ln=True, align="C")
+        pdf.ln(10)
 
         for result in results:
-            pdf.cell(200, 10, txt=f"{result.subject}: {result.marks} ({result.grade})", ln=True)
+            pdf.cell(200, 10, txt=f"{result.subject}: {result.marks} - {result.grade}", ln=True)
 
-        pdf.output(f"{student_name}_results.pdf")
-        st.success("PDF generated!")
+        pdf_output = f"{student_name}_report.pdf"
+        pdf.output(pdf_output)
+        st.success(f"Report generated: {pdf_output}")
     else:
-        st.info("No results to export.")
-
-# Main app logic
-def main():
-    # Initialize session state
-    if "user" not in st.session_state:
-        st.session_state['user'] = None
-    if "is_logged_in" not in st.session_state:
-        st.session_state['is_logged_in'] = False
-
-    st.sidebar.title("Result Management System")
-
-    if st.session_state['is_logged_in']:
-        if st.sidebar.button("Logout"):
-            logout()
-    else:
-        if st.sidebar.checkbox("Already have an account?"):
-            user = login()
-        else:
-            signup()
-
-    check_session_timeout()
-
-    if st.session_state['user']:
-        user = st.session_state['user']
-        if user.role == "Teacher":
-            teacher_dashboard()
-        elif user.role == "Parent":
-            parent_dashboard()
-
-if __name__ == "__main__":
-    main()
+        st.error("No results available for the student.")
