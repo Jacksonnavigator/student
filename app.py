@@ -78,10 +78,9 @@ def view_results(student_id, student_name):
     else:
         st.error("Student ID and name do not match any records.")
 
-# Teacher dashboard
 def teacher_dashboard():
     st.title("Teacher Dashboard")
-    action = st.radio("Choose Action", ["Upload Results", "View Results"])
+    action = st.radio("Choose Action", ["Upload Results", "View All Results"])
 
     if action == "Upload Results":
         st.subheader("Upload Results")
@@ -107,16 +106,30 @@ def teacher_dashboard():
             session.commit()
             st.success(f"Result for {subject} uploaded successfully for {student_name}!")
 
-    elif action == "View Results":
-        st.subheader("View Results")
-        student_name = st.text_input("Enter Student Name")
-        if st.button("View Results"):
-            # Find the student by name
-            student = session.query(Student).filter_by(name=student_name).first()
-            if student:
-                view_results(student.id, student.name)
-            else:
-                st.error(f"No student found with name {student_name}.")
+    elif action == "View All Results":
+        st.subheader("All Student Results")
+        results = session.query(Student).all()
+
+        if results:
+            # Prepare data for table display
+            table_data = []
+            for student in results:
+                student_results = session.query(Result).filter_by(student_id=student.id).all()
+                data = {
+                    "Student ID": student.id,
+                    "Student Name": student.name,
+                    **{f"{subject} (Marks)": "N/A" for subject in SUBJECTS},
+                    **{f"{subject} (Grade)": "N/A" for subject in SUBJECTS},
+                }
+                for result in student_results:
+                    data[f"{result.subject} (Marks)"] = result.marks
+                    data[f"{result.subject} (Grade)"] = result.grade
+                table_data.append(data)
+
+            st.dataframe(pd.DataFrame(table_data))
+        else:
+            st.info("No results available.")
+
 
 # Parent dashboard
 def parent_dashboard():
