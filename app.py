@@ -82,33 +82,41 @@ def view_results(student_id, student_name):
 def teacher_dashboard():
     st.title("Teacher Dashboard")
     action = st.radio("Choose Action", ["Upload Results", "View Results"])
+
     if action == "Upload Results":
         st.subheader("Upload Results")
-        student_id = st.number_input("Student ID", min_value=1, step=1)
         student_name = st.text_input("Student Name")
         subject = st.selectbox("Subject", SUBJECTS)
         marks = st.number_input("Marks", min_value=0, max_value=100, step=1)
         grade = st.text_input("Grade")
+        
         if st.button("Upload"):
-            student = session.query(Student).filter_by(id=student_id).first()
+            # Check if student exists by name
+            student = session.query(Student).filter_by(name=student_name).first()
             if not student:
-                student = Student(id=student_id, name=student_name)
+                # Automatically generate a new student ID if the student doesn't exist
+                new_student_id = session.query(Student).count() + 1
+                student = Student(id=new_student_id, name=student_name)
                 session.add(student)
                 session.commit()
-                st.success(f"New student {student_name} added.")
-            elif student.name != student_name:
-                st.error(f"Student ID {student_id} is already assigned to {student.name}.")
-                return
-            result = Result(student_id=student_id, subject=subject, marks=marks, grade=grade)
+                st.success(f"New student {student_name} added with ID {new_student_id}.")
+            
+            # Save the result
+            result = Result(student_id=student.id, subject=subject, marks=marks, grade=grade)
             session.add(result)
             session.commit()
             st.success(f"Result for {subject} uploaded successfully for {student_name}!")
+
     elif action == "View Results":
         st.subheader("View Results")
-        student_id = st.number_input("Enter Student ID", min_value=1, step=1)
         student_name = st.text_input("Enter Student Name")
         if st.button("View Results"):
-            view_results(student_id, student_name)
+            # Find the student by name
+            student = session.query(Student).filter_by(name=student_name).first()
+            if student:
+                view_results(student.id, student.name)
+            else:
+                st.error(f"No student found with name {student_name}.")
 
 # Parent dashboard
 def parent_dashboard():
