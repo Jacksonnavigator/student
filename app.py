@@ -45,7 +45,7 @@ def login():
     return None
 
 def signup():
-    st.sidebar.title("📝 Signup")
+    st.sidebar.title("📜 Signup")
     st.sidebar.markdown("Create a new account to access the system.")
     username = st.sidebar.text_input("👤 Username")
     password = st.sidebar.text_input("🔑 Password", type="password")
@@ -83,7 +83,7 @@ def view_results(student_id, student_name):
             # Add download button
             csv = df.to_csv(index=False)
             st.download_button(
-                label="📥 Download Results as CSV",
+                label="📅 Download Results as CSV",
                 data=csv,
                 file_name=f"{student.name}_results.csv",
                 mime="text/csv"
@@ -99,10 +99,21 @@ def view_results(student_id, student_name):
 
 def plot_performance_trend(df):
     st.subheader("📊 Performance Trend")
+    
+    # Ensure valid data
     if "Marks" in df.columns and "Subject" in df.columns:
-        fig = px.bar(df, x="Subject", y="Marks", title="Student Performance by Subject", 
-                     labels={"Marks": "Marks", "Subject": "Subjects"}, 
-                     text_auto=True)
+        # Handle missing or invalid marks
+        df["Marks"] = pd.to_numeric(df["Marks"], errors="coerce").fillna(0)
+        
+        # Create the bar chart
+        fig = px.bar(
+            df,
+            x="Subject",
+            y="Marks",
+            title="Student Performance by Subject",
+            labels={"Marks": "Marks", "Subject": "Subjects"},
+            text_auto=True,
+        )
         st.plotly_chart(fig)
     else:
         st.error("❌ Insufficient data to plot performance trend.")
