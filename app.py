@@ -69,12 +69,24 @@ def view_results(student_id, student_name):
             data = {subject: {"Marks": "N/A", "Grade": "N/A"} for subject in SUBJECTS}
             for result in results:
                 data[result.subject] = {"Marks": result.marks, "Grade": result.grade}
+
             table_data = {
-                "Student Name": [student.name],
-                **{f"{subject} (Marks)": [data[subject]["Marks"]] for subject in SUBJECTS},
-                **{f"{subject} (Grade)": [data[subject]["Grade"]] for subject in SUBJECTS},
+                "Subject": list(data.keys()),
+                "Marks": [data[subject]["Marks"] for subject in SUBJECTS],
+                "Grade": [data[subject]["Grade"] for subject in SUBJECTS]
             }
-            st.table(pd.DataFrame(table_data))
+
+            df = pd.DataFrame(table_data)
+            st.table(df)
+
+            # Add download button
+            csv = df.to_csv(index=False)
+            st.download_button(
+                label="📥 Download Results as CSV",
+                data=csv,
+                file_name=f"{student.name}_results.csv",
+                mime="text/csv"
+            )
         else:
             st.info(f"ℹ️ No results found for {student.name}.")
     else:
@@ -88,7 +100,6 @@ def teacher_dashboard():
 
     if action == "Upload Results":
         st.subheader("🖋 Upload Results")
-        student_id = st.number_input("Student Id")
         student_name = st.text_input("Student Name")
         subject = st.selectbox("Subject", SUBJECTS)
         marks = st.number_input("Marks", min_value=0, max_value=100, step=1)
@@ -134,7 +145,7 @@ def teacher_dashboard():
 # Parent dashboard
 def parent_dashboard():
     st.title("👨‍👩‍👦 Parent Dashboard")
-    st.markdown("View your child's academic progress.")
+    st.markdown("View and download your child's academic progress.")
     student_id = st.number_input("Enter Student ID", min_value=1, step=1)
     student_name = st.text_input("Enter Student Name")
     if st.button("View Results", type="primary"):
