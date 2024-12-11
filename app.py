@@ -110,9 +110,8 @@ def view_results(student_id, student_name):
 # Teacher dashboard
 def teacher_dashboard():
     st.title("Teacher Dashboard")
-    tab1, tab2, tab3 = st.tabs(["Upload Results", "View All Results", "Edit Results"])
+    tab1, tab2 = st.tabs(["Upload Results", "View All Results"])
 
-    # Tab 1: Upload Results
     with tab1:
         st.subheader("Upload Results")
         student_name = st.text_input("Student Name")
@@ -137,7 +136,6 @@ def teacher_dashboard():
             except Exception as e:
                 st.error(f"An error occurred: {str(e)}")
 
-    # Tab 2: View All Results
     with tab2:
         st.subheader("All Student Results")
         students = session.query(Student).all()
@@ -160,65 +158,6 @@ def teacher_dashboard():
             st.dataframe(pd.DataFrame(table_data))
         else:
             st.info("No results available.")
-
-    # Tab 3: Edit Results
-    with tab3:
-        st.subheader("Edit Results")
-        
-        # Select student to edit
-        student_list = session.query(Student).all()
-        student_names = [student.name for student in student_list]
-        selected_student_name = st.selectbox("Select Student", student_names)
-
-        # Retrieve the selected student
-        selected_student = session.query(Student).filter_by(name=selected_student_name).first()
-
-        if selected_student:
-            # Allow teacher to edit student name and ID
-            new_name = st.text_input("Edit Student Name", value=selected_student.name)
-            new_student_id = st.number_input("Edit Student ID", value=selected_student.id, min_value=1, step=1)
-
-            # Allow teacher to edit existing results for the selected student
-            st.subheader(f"Results for {selected_student.name}")
-            existing_results = session.query(Result).filter_by(student_id=selected_student.id).all()
-
-            result_data = {}
-            for result in existing_results:
-                result_data[result.subject] = {
-                    "Marks": result.marks,
-                    "Grade": result.grade
-                }
-
-            # Edit results
-            updated_results = {}
-            for subject in SUBJECTS:
-                marks = st.number_input(f"Marks for {subject}", min_value=0, max_value=100, value=result_data.get(subject, {}).get("Marks", 0))
-                grade = st.text_input(f"Grade for {subject}", value=result_data.get(subject, {}).get("Grade", ""))
-                updated_results[subject] = {"Marks": marks, "Grade": grade}
-
-            if st.button("Save Edits"):
-                # Update student name and ID if changed
-                if selected_student.name != new_name:
-                    selected_student.name = new_name
-                if selected_student.id != new_student_id:
-                    selected_student.id = new_student_id
-
-                # Update results for the student
-                for subject, result in updated_results.items():
-                    existing_result = session.query(Result).filter_by(student_id=selected_student.id, subject=subject).first()
-                    if existing_result:
-                        # If the result exists, update it
-                        existing_result.marks = result["Marks"]
-                        existing_result.grade = result["Grade"]
-                    else:
-                        # If the result doesn't exist, create a new one
-                        new_result = Result(student_id=selected_student.id, subject=subject, marks=result["Marks"], grade=result["Grade"])
-                        session.add(new_result)
-
-                session.commit()
-                st.success(f"Student {new_name} details and results updated successfully!")
-        else:
-            st.error("Student not found.")
 
 # Bulk upload for results
 def bulk_upload():
@@ -268,30 +207,58 @@ def plot_performance(student_id):
         marks = [result.marks for result in results]
 
         plt.figure(figsize=(10, 5))
-        plt.bar(subjects, marks)
+        plt.bar(subjects, marks, color='skyblue')
         plt.xlabel("Subjects")
         plt.ylabel("Marks")
-        plt.title("Student Performance Trend")
+        plt.title("Performance Trend")
         st.pyplot(plt)
     else:
-        st.info("No results available for the student.")
+        st.info("No results available for trend analysis.")
 
-# Generate student report PDF
+# PDF generation
 def generate_pdf(student_id, student_name):
     results = session.query(Result).filter_by(student_id=student_id).all()
     if results:
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=12)
-
-        pdf.cell(200, 10, txt=f"Report for {student_name}", ln=True, align="C")
-        pdf.ln(10)
+        pdf.cell(200, 10, txt=f"Results for {student_name}", ln=True, align='C')
 
         for result in results:
-            pdf.cell(200, 10, txt=f"{result.subject}: {result.marks} - {result.grade}", ln=True)
+            pdf.cell(200, 10, txt=f"{result.subject}: {result.marks} ({result.grade})", ln=True)
 
-        pdf_output = f"{student_name}_report.pdf"
-        pdf.output(pdf_output)
-        st.success(f"Report generated: {pdf_output}")
+        pdf.output(f"{student_name}_results.pdf")
+        st.success("PDF generated!")
     else:
-        st.error("No results available for the student.")
+        st.info("No results to export.")
+
+# Main app logic
+def main():
+    # Initialize session state
+    if "user" not in st.session_state:
+        st.session_state['user'] = None
+    if "is_logged_in" not in st.session_state:
+        st.session_state['is_logged_in'] = False
+
+    st.sidebar.title("Result Management System")
+
+    if st.session_state['is_logged_in']:
+        if st.sidebar.button("Logout"):
+            logout()
+    else:
+        if st.sidebar.checkbox("Already have an account?"):
+            user = login()
+        else:
+            signup()
+
+    check_session_timeout()
+
+    if st.session_state['user']:
+        user = st.session_state['user']
+        if user.role == "Teacher":
+            teacher_dashboard()
+        elif user.role == "Parent":
+            parent_dashboard()
+
+if __name__ == "__main__":
+    main()
