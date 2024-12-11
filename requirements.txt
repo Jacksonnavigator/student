@@ -3,3 +3,4 @@ sqlalchemy
 pandas
 bcrypt
 fpdf
+matplotlib
