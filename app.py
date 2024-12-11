@@ -78,6 +78,7 @@ def view_results(student_id, student_name):
     else:
         st.error("Student ID and name do not match any records.")
 
+# Teacher dashboard
 def teacher_dashboard():
     st.title("Teacher Dashboard")
     action = st.radio("Choose Action", ["Upload Results", "View All Results"])
@@ -108,12 +109,11 @@ def teacher_dashboard():
 
     elif action == "View All Results":
         st.subheader("All Student Results")
-        results = session.query(Student).all()
+        students = session.query(Student).all()
 
-        if results:
-            # Prepare data for table display
+        if students:
             table_data = []
-            for student in results:
+            for student in students:
                 student_results = session.query(Result).filter_by(student_id=student.id).all()
                 data = {
                     "Student ID": student.id,
@@ -129,7 +129,6 @@ def teacher_dashboard():
             st.dataframe(pd.DataFrame(table_data))
         else:
             st.info("No results available.")
-
 
 # Parent dashboard
 def parent_dashboard():
