@@ -61,14 +61,14 @@ def signup():
             st.success("🎉 Signup successful! Please log in.")
 
 # Unified result view
-def view_results(student_id, student_name):
+def view_results(student_examination_number, student_name):
     if "view_trend" not in st.session_state:
         st.session_state["view_trend"] = False
 
-    student = session.query(Student).filter_by(id=student_id, name=student_name).first()
+    student = session.query(Student).filter_by(id=student_examination_number, name=student_name).first()
     if student:
         st.subheader(f"📄 Results for {student.name}")
-        results = session.query(Result).filter_by(student_id=student_id).all()
+        results = session.query(Result).filter_by(student_examination_number=student_examination_number).all()
         if results:
             data = {subject: {"Marks": "N/A", "Grade": "N/A"} for subject in SUBJECTS}
             for result in results:
@@ -101,7 +101,7 @@ def view_results(student_id, student_name):
         else:
             st.info(f"ℹ️ No results found for {student.name}.")
     else:
-        st.error("❌ Student ID and name do not match any records.")
+        st.error("❌ Student Examination Number and name do not match any records.")
 
 def plot_performance_trend(df):
     st.subheader("📊 Performance Trend")
@@ -132,6 +132,7 @@ def teacher_dashboard():
 
     if action == "Upload Results":
         st.subheader("🖋 Upload Results")
+        student_examination_number = st.number_input("Student Examination Number")
         student_name = st.text_input("Student Name")
         subject = st.selectbox("Subject", SUBJECTS)
         marks = st.number_input("Marks", min_value=0, max_value=100, step=1)
@@ -140,13 +141,13 @@ def teacher_dashboard():
         if st.button("Upload", type="primary"):
             student = session.query(Student).filter_by(name=student_name).first()
             if not student:
-                new_student_id = session.query(Student).count() + 1
-                student = Student(id=new_student_id, name=student_name)
+                new_student_examination_number = session.query(Student).count() + 1
+                student = Student(id=new_student_examination_number, name=student_name)
                 session.add(student)
                 session.commit()
-                st.success(f"✨ New student {student_name} added with ID {new_student_id}.")
+                st.success(f"✨ New student {student_name} added with ID {new_student_examination_number}.")
 
-            result = Result(student_id=student.id, subject=subject, marks=marks, grade=grade)
+            result = Result(student_examination_number=student.id, subject=subject, marks=marks, grade=grade)
             session.add(result)
             session.commit()
             st.success(f"✅ Result for {subject} uploaded successfully for {student_name}!")
@@ -158,9 +159,9 @@ def teacher_dashboard():
         if students:
             table_data = []
             for student in students:
-                student_results = session.query(Result).filter_by(student_id=student.id).all()
+                student_results = session.query(Result).filter_by(student_examination_number=student.id).all()
                 data = {
-                    "Student ID": student.id,
+                    "Student Examination Number": student.id,
                     "Student Name": student.name,
                     **{f"{subject} (Marks)": "N/A" for subject in SUBJECTS},
                     **{f"{subject} (Grade)": "N/A" for subject in SUBJECTS},
@@ -178,10 +179,10 @@ def teacher_dashboard():
 def parent_dashboard():
     st.title("👨‍👩‍👦 Parent Dashboard")
     st.markdown("View, download, and analyze your child's academic progress.")
-    student_id = st.number_input("Enter Student ID", min_value=1, step=1)
+    student_examination_number = st.number_input("Enter Student Examination Number", min_value=1, step=1)
     student_name = st.text_input("Enter Student Name")
     if st.button("View Results", type="primary"):
-        view_results(student_id, student_name)
+        view_results(student_examination_number, student_name)
 
 # Main app logic
 def main():
