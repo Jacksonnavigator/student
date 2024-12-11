@@ -62,6 +62,9 @@ def signup():
 
 # Unified result view
 def view_results(student_id, student_name):
+    if "view_trend" not in st.session_state:
+        st.session_state["view_trend"] = False
+
     student = session.query(Student).filter_by(id=student_id, name=student_name).first()
     if student:
         st.subheader(f"📄 Results for {student.name}")
@@ -91,6 +94,9 @@ def view_results(student_id, student_name):
 
             # Add performance trend button
             if st.button("📊 View Performance Trend"):
+                st.session_state["view_trend"] = True
+
+            if st.session_state["view_trend"]:
                 plot_performance_trend(df)
         else:
             st.info(f"ℹ️ No results found for {student.name}.")
