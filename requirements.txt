@@ -4,4 +4,3 @@ pandas
 bcrypt
 fpdf
 matplotlib
-uv
