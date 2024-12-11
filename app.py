@@ -59,31 +59,19 @@ def signup():
 
 # Unified result view
 def view_results(student_id, student_name):
-    # Validate student
     student = session.query(Student).filter_by(id=student_id, name=student_name).first()
-    
     if student:
         st.subheader(f"Results for {student.name}")
-        
-        # Fetch results for the student
         results = session.query(Result).filter_by(student_id=student_id).all()
-        
         if results:
-            # Initialize the data dictionary
             data = {subject: {"Marks": "N/A", "Grade": "N/A"} for subject in SUBJECTS}
-            
-            # Populate data with results
             for result in results:
                 data[result.subject] = {"Marks": result.marks, "Grade": result.grade}
-            
-            # Prepare table data
             table_data = {
                 "Student Name": [student.name],
                 **{f"{subject} (Marks)": [data[subject]["Marks"]] for subject in SUBJECTS},
                 **{f"{subject} (Grade)": [data[subject]["Grade"]] for subject in SUBJECTS},
             }
-            
-            # Display the table
             st.table(pd.DataFrame(table_data))
         else:
             st.info(f"No results found for {student.name}.")
@@ -94,7 +82,6 @@ def view_results(student_id, student_name):
 def teacher_dashboard():
     st.title("Teacher Dashboard")
     action = st.radio("Choose Action", ["Upload Results", "View Results"])
-    
     if action == "Upload Results":
         st.subheader("Upload Results")
         student_id = st.number_input("Student ID", min_value=1, step=1)
@@ -102,12 +89,9 @@ def teacher_dashboard():
         subject = st.selectbox("Subject", SUBJECTS)
         marks = st.number_input("Marks", min_value=0, max_value=100, step=1)
         grade = st.text_input("Grade")
-        
         if st.button("Upload"):
-            # Check if student exists
             student = session.query(Student).filter_by(id=student_id).first()
             if not student:
-                # Create new student
                 student = Student(id=student_id, name=student_name)
                 session.add(student)
                 session.commit()
@@ -115,18 +99,14 @@ def teacher_dashboard():
             elif student.name != student_name:
                 st.error(f"Student ID {student_id} is already assigned to {student.name}.")
                 return
-            
-            # Add result
             result = Result(student_id=student_id, subject=subject, marks=marks, grade=grade)
             session.add(result)
             session.commit()
             st.success(f"Result for {subject} uploaded successfully for {student_name}!")
-    
     elif action == "View Results":
         st.subheader("View Results")
         student_id = st.number_input("Enter Student ID", min_value=1, step=1)
         student_name = st.text_input("Enter Student Name")
-        
         if st.button("View Results"):
             view_results(student_id, student_name)
 
@@ -135,18 +115,19 @@ def parent_dashboard():
     st.title("Parent Dashboard")
     student_id = st.number_input("Enter Student ID", min_value=1, step=1)
     student_name = st.text_input("Enter Student Name")
-    
     if st.button("View Results"):
         view_results(student_id, student_name)
 
 # Main app logic
 def main():
+    # Initialize session state
     if "user" not in st.session_state:
         st.session_state['user'] = None
+    if "is_logged_in" not in st.session_state:
         st.session_state['is_logged_in'] = False
-    
+
     st.sidebar.title("Result Management System")
-    
+
     if st.session_state['is_logged_in']:
         if st.sidebar.button("Logout"):
             logout()
@@ -155,7 +136,7 @@ def main():
             user = login()
         else:
             signup()
-    
+
     if st.session_state['user']:
         user = st.session_state['user']
         if user.role == "Teacher":
