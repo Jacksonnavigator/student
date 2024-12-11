@@ -3,6 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from models import User, Student, Result, engine
 import pandas as pd
 import bcrypt
+import plotly.express as px
 
 # Database session
 Session = sessionmaker(bind=engine)
@@ -87,26 +88,24 @@ def view_results(student_id, student_name):
                 file_name=f"{student.name}_results.csv",
                 mime="text/csv"
             )
+
+            # Add performance trend button
+            if st.button("📊 View Performance Trend"):
+                plot_performance_trend(df)
         else:
             st.info(f"ℹ️ No results found for {student.name}.")
     else:
         st.error("❌ Student ID and name do not match any records.")
 
-# View performance trend
-def view_performance_trend(student_id, student_name):
-    student = session.query(Student).filter_by(id=student_id, name=student_name).first()
-    if student:
-        st.subheader(f"📊 Performance Trend for {student.name}")
-        results = session.query(Result).filter_by(student_id=student_id).all()
-        if results:
-            data = {result.subject: result.marks for result in results}
-
-            df = pd.DataFrame(list(data.items()), columns=["Subject", "Marks"])
-            st.bar_chart(df.set_index("Subject"))
-        else:
-            st.info(f"ℹ️ No performance data found for {student.name}.")
+def plot_performance_trend(df):
+    st.subheader("📊 Performance Trend")
+    if "Marks" in df.columns and "Subject" in df.columns:
+        fig = px.bar(df, x="Subject", y="Marks", title="Student Performance by Subject", 
+                     labels={"Marks": "Marks", "Subject": "Subjects"}, 
+                     text_auto=True)
+        st.plotly_chart(fig)
     else:
-        st.error("❌ Student ID and name do not match any records.")
+        st.error("❌ Insufficient data to plot performance trend.")
 
 # Teacher dashboard
 def teacher_dashboard():
@@ -161,13 +160,11 @@ def teacher_dashboard():
 # Parent dashboard
 def parent_dashboard():
     st.title("👨‍👩‍👦 Parent Dashboard")
-    st.markdown("View and download your child's academic progress.")
+    st.markdown("View, download, and analyze your child's academic progress.")
     student_id = st.number_input("Enter Student ID", min_value=1, step=1)
     student_name = st.text_input("Enter Student Name")
     if st.button("View Results", type="primary"):
         view_results(student_id, student_name)
-    if st.button("View Performance Trend", type="primary"):
-        view_performance_trend(student_id, student_name)
 
 # Main app logic
 def main():
