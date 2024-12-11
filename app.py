@@ -92,25 +92,21 @@ def view_results(student_id, student_name):
     else:
         st.error("❌ Student ID and name do not match any records.")
 
-# Performance trend view
-def view_performance_trend(student_id):
-    student = session.query(Student).filter_by(id=student_id).first()
+# View performance trend
+def view_performance_trend(student_id, student_name):
+    student = session.query(Student).filter_by(id=student_id, name=student_name).first()
     if student:
         st.subheader(f"📊 Performance Trend for {student.name}")
         results = session.query(Result).filter_by(student_id=student_id).all()
         if results:
-            trend_data = {
-                "Subject": [result.subject for result in results],
-                "Marks": [result.marks for result in results]
-            }
-            df = pd.DataFrame(trend_data)
+            data = {result.subject: result.marks for result in results}
 
-            # Plot trend
-            st.line_chart(df.set_index("Subject"))
+            df = pd.DataFrame(list(data.items()), columns=["Subject", "Marks"])
+            st.bar_chart(df.set_index("Subject"))
         else:
-            st.info(f"ℹ️ No results found for {student.name}.")
+            st.info(f"ℹ️ No performance data found for {student.name}.")
     else:
-        st.error("❌ Student ID not found.")
+        st.error("❌ Student ID and name do not match any records.")
 
 # Teacher dashboard
 def teacher_dashboard():
@@ -170,8 +166,8 @@ def parent_dashboard():
     student_name = st.text_input("Enter Student Name")
     if st.button("View Results", type="primary"):
         view_results(student_id, student_name)
-    if st.button("View Performance Trend", type="secondary"):
-        view_performance_trend(student_id)
+    if st.button("View Performance Trend", type="primary"):
+        view_performance_trend(student_id, student_name)
 
 # Main app logic
 def main():
