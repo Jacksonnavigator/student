@@ -5,6 +5,3 @@ bcrypt
 fpdf
 matplotlib
 plotly
-smtplib
-email-validator
-python-dotenv==0.21.0
