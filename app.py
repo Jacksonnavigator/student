@@ -4,6 +4,7 @@ from models import User, Student, Result, engine
 import pandas as pd
 import bcrypt
 import plotly.express as px
+import uuid
 
 # Database session
 Session = sessionmaker(bind=engine)
@@ -27,6 +28,36 @@ def logout():
     st.session_state['is_logged_in'] = False
     st.success("You have been logged out.")
 
+# Password recovery
+def recover_password():
+    st.sidebar.title("🔑 Recover Password")
+    email = st.sidebar.text_input("📧 Enter your email address")
+    if st.sidebar.button("Send Recovery Email"):
+        user = session.query(User).filter_by(email=email).first()
+        if user:
+            token = str(uuid.uuid4())
+            user.reset_token = token
+            session.commit()
+            st.success(f"A recovery email has been sent to {email} (Simulated). Token: {token}")
+            # Simulate sending email (replace with real email-sending logic)
+        else:
+            st.error("Email address not found.")
+
+def reset_password():
+    st.sidebar.title("🔄 Reset Password")
+    email = st.sidebar.text_input("📧 Enter your email address")
+    token = st.sidebar.text_input("🔑 Enter recovery token")
+    new_password = st.sidebar.text_input("🔒 Enter new password", type="password")
+    if st.sidebar.button("Reset Password"):
+        user = session.query(User).filter_by(email=email, reset_token=token).first()
+        if user:
+            user.password = hash_password(new_password)
+            user.reset_token = None  # Invalidate the token
+            session.commit()
+            st.success("Your password has been reset successfully!")
+        else:
+            st.error("Invalid email or token.")
+
 # User login/signup
 def login():
     st.sidebar.title("🔒 Login")
@@ -48,6 +79,7 @@ def signup():
     st.sidebar.title("📝 Signup")
     st.sidebar.markdown("Create a new account to access the system.")
     username = st.sidebar.text_input("👤 Username")
+    email = st.sidebar.text_input("📧 Email")
     password = st.sidebar.text_input("🔑 Password", type="password")
     role = st.sidebar.selectbox("👥 Role", ["Teacher", "Parent"])
     if st.sidebar.button("Signup", type="primary"):
@@ -55,7 +87,7 @@ def signup():
             st.error("❌ Username already exists.")
         else:
             hashed_pw = hash_password(password)
-            new_user = User(username=username, password=hashed_pw, role=role)
+            new_user = User(username=username, email=email, password=hashed_pw, role=role)
             session.add(new_user)
             session.commit()
             st.success("🎉 Signup successful! Please log in.")
@@ -115,7 +147,6 @@ def teacher_dashboard():
 
     if action == "Upload Results":
         st.subheader("🖋 Upload Results")
-        student_id = st.number_input("Student Id")
         student_name = st.text_input("Student Name")
         subject = st.selectbox("Subject", SUBJECTS)
         marks = st.number_input("Marks", min_value=0, max_value=100, step=1)
@@ -182,6 +213,8 @@ def main():
     else:
         if st.sidebar.checkbox("Already have an account?"):
             user = login()
+        elif st.sidebar.checkbox("Forgot Password?"):
+            recover_password()
         else:
             signup()
 
