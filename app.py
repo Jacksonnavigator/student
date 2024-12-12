@@ -29,33 +29,33 @@ def logout():
 
 # User login/signup
 def login():
-    st.sidebar.title("\ud83d\udd12 Login")
-    username = st.sidebar.text_input("\ud83d\udc64 Username")
-    password = st.sidebar.text_input("\ud83d\udd11 Password", type="password")
+    st.sidebar.title("\U0001F512 Login")  # Unicode for 🔒 emoji
+    username = st.sidebar.text_input("\U0001F464 Username")  # Unicode for 👤 emoji
+    password = st.sidebar.text_input("\U0001F50D Password", type="password")  # Unicode for 🔍 emoji
 
     if st.sidebar.button("Login", type="primary"):
         user = session.query(User).filter_by(username=username).first()
         if user and check_password(password, user.password):
             st.session_state['user'] = user
             st.session_state['is_logged_in'] = True
-            st.success(f"\ud83c\udf89 Welcome, {user.username}!")
+            st.success(f"\U0001F389 Welcome, {user.username}!")  # Unicode for 🎉 emoji
         else:
-            st.error("\u274c Invalid username or password.")
+            st.error("\u274C Invalid username or password.")  # Unicode for ❌ emoji
 
     if st.sidebar.button("Forgot Password?"):
         recover_password()
 
 def signup():
-    st.sidebar.title("\ud83d\uddcb Signup")
-    username = st.sidebar.text_input("\ud83d\udc64 Username")
-    password = st.sidebar.text_input("\ud83d\udd11 Password", type="password")
-    role = st.sidebar.selectbox("\ud83d\udc65 Role", ["Teacher", "Parent"])
-    security_question = st.sidebar.text_input("\ud83d\udee1 Security Question")
-    security_answer = st.sidebar.text_input("\ud83d\udd11 Security Answer")
+    st.sidebar.title("\U0001F4CB Signup")  # Unicode for 📋 emoji
+    username = st.sidebar.text_input("\U0001F464 Username")  # Unicode for 👤 emoji
+    password = st.sidebar.text_input("\U0001F50D Password", type="password")  # Unicode for 🔍 emoji
+    role = st.sidebar.selectbox("\U0001F465 Role", ["Teacher", "Parent"])  # Unicode for 👥 emoji
+    security_question = st.sidebar.text_input("\U0001F6E1 Security Question")  # Unicode for ⚡ emoji
+    security_answer = st.sidebar.text_input("\U0001F50D Security Answer")  # Unicode for 🔍 emoji
 
     if st.sidebar.button("Signup", type="primary"):
         if session.query(User).filter_by(username=username).first():
-            st.error("\u274c Username already exists.")
+            st.error("\u274C Username already exists.")  # Unicode for ❌ emoji
         else:
             hashed_pw = hash_password(password)
             hashed_answer = hash_password(security_answer)
@@ -68,35 +68,35 @@ def signup():
             )
             session.add(new_user)
             session.commit()
-            st.success("\ud83c\udf89 Signup successful! Please log in.")
+            st.success("\U0001F389 Signup successful! Please log in.")  # Unicode for 🎉 emoji
 
 # Password recovery
 def recover_password():
-    st.title("\ud83d\udd12 Recover Password")
-    username = st.text_input("\ud83d\udc64 Enter your Username")
+    st.title("\U0001F512 Recover Password")  # Unicode for 🔒 emoji
+    username = st.text_input("\U0001F464 Enter your Username")  # Unicode for 👤 emoji
     user = session.query(User).filter_by(username=username).first()
 
     if user:
-        st.write(f"\ud83d\udee1 Security Question: {user.security_question}")
-        security_answer = st.text_input("\ud83d\udd11 Answer", type="password")
-        new_password = st.text_input("\ud83d\udd12 New Password", type="password")
+        st.write(f"\U0001F6E1 Security Question: {user.security_question}")  # Unicode for ⚡ emoji
+        security_answer = st.text_input("\U0001F50D Answer", type="password")  # Unicode for 🔍 emoji
+        new_password = st.text_input("\U0001F512 New Password", type="password")  # Unicode for 🔒 emoji
 
         if st.button("Submit"):
             if check_password(security_answer, user.security_answer):
                 hashed_pw = hash_password(new_password)
                 user.password = hashed_pw
                 session.commit()
-                st.success("\ud83c\udf89 Password successfully updated! You can now log in.")
+                st.success("\U0001F389 Password successfully updated! You can now log in.")  # Unicode for 🎉 emoji
             else:
-                st.error("\u274c Incorrect security answer.")
+                st.error("\u274C Incorrect security answer.")  # Unicode for ❌ emoji
     else:
-        st.error("\u274c User not found.")
+        st.error("\u274C User not found.")  # Unicode for ❌ emoji
 
 # Unified result view
 def view_results(student_id, student_name):
     student = session.query(Student).filter_by(id=student_id, name=student_name).first()
     if student:
-        st.subheader(f"\ud83d\udcdd Results for {student.name}")
+        st.subheader(f"\U0001F4DD Results for {student.name}")  # Unicode for 📝 emoji
         results = session.query(Result).filter_by(student_id=student_id).all()
         if results:
             data = {subject: {"Marks": "N/A", "Grade": "N/A"} for subject in SUBJECTS}
@@ -115,37 +115,37 @@ def view_results(student_id, student_name):
             # Add download button
             csv = df.to_csv(index=False)
             st.download_button(
-                label="\ud83d\udcc5 Download Results as CSV",
+                label="\U0001F4C5 Download Results as CSV",  # Unicode for 📅 emoji
                 data=csv,
                 file_name=f"{student.name}_results.csv",
                 mime="text/csv"
             )
 
             # Add performance trend button
-            if st.button("\ud83d\udcca View Performance Trend"):
+            if st.button("\U0001F4CA View Performance Trend"):  # Unicode for 📊 emoji
                 plot_performance_trend(df)
         else:
-            st.info(f"\u2139\ufe0f No results found for {student.name}.")
+            st.info(f"\U2139\ufe0f No results found for {student.name}.")  # Unicode for ℹ️ emoji
     else:
-        st.error("\u274c Student ID and name do not match any records.")
+        st.error("\u274C Student ID and name do not match any records.")  # Unicode for ❌ emoji
 
 def plot_performance_trend(df):
-    st.subheader("\ud83d\udcca Performance Trend")
+    st.subheader("\U0001F4CA Performance Trend")  # Unicode for 📊 emoji
     if "Marks" in df.columns and "Subject" in df.columns:
         fig = px.bar(df, x="Subject", y="Marks", title="Student Performance by Subject",
                      labels={"Marks": "Marks", "Subject": "Subjects"},
                      text_auto=True)
         st.plotly_chart(fig)
     else:
-        st.error("\u274c Insufficient data to plot performance trend.")
+        st.error("\u274C Insufficient data to plot performance trend.")  # Unicode for ❌ emoji
 
 # Teacher dashboard
 def teacher_dashboard():
-    st.title("\ud83d\udcda Teacher Dashboard")
+    st.title("\U0001F4DA Teacher Dashboard")  # Unicode for 📚 emoji
     action = st.radio("Choose Action", ["Upload Results", "View All Results"], index=0)
 
     if action == "Upload Results":
-        st.subheader("\u270d Upload Results")
+        st.subheader("\U270D Upload Results")  # Unicode for ✍ emoji
         student_name = st.text_input("Student Name")
         subject = st.selectbox("Subject", SUBJECTS)
         marks = st.number_input("Marks", min_value=0, max_value=100, step=1)
@@ -158,15 +158,15 @@ def teacher_dashboard():
                 student = Student(id=new_student_id, name=student_name)
                 session.add(student)
                 session.commit()
-                st.success(f"\u2728 New student {student_name} added with ID {new_student_id}.")
+                st.success(f"\U2728 New student {student_name} added with ID {new_student_id}.")  # Unicode for ✨ emoji
 
             result = Result(student_id=student.id, subject=subject, marks=marks, grade=grade)
             session.add(result)
             session.commit()
-            st.success(f"\u2705 Result for {subject} uploaded successfully for {student_name}!")
+            st.success(f"\U2705 Result for {subject} uploaded successfully for {student_name}!")  # Unicode for ✅ emoji
 
     elif action == "View All Results":
-        st.subheader("\ud83d\udccb All Student Results")
+        st.subheader("\U0001F4CD All Student Results")  # Unicode for 📍 emoji
         students = session.query(Student).all()
 
         if students:
@@ -186,11 +186,11 @@ def teacher_dashboard():
 
             st.dataframe(pd.DataFrame(table_data))
         else:
-            st.info("\u2139\ufe0f No results available.")
+            st.info("\U2139\ufe0f No results available.")  # Unicode for ℹ️ emoji
 
 # Parent dashboard
 def parent_dashboard():
-    st.title("\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc66 Parent Dashboard")
+    st.title("\U0001F468\U0000200D\U0001F469\U0000200D\U0001F466 Parent Dashboard")  # Unicode for 👨‍👩‍👧 emoji
     student_id = st.number_input("Enter Student ID", min_value=1, step=1)
     student_name = st.text_input("Enter Student Name")
     if st.button("View Results", type="primary"):
@@ -203,7 +203,7 @@ def main():
     if "is_logged_in" not in st.session_state:
         st.session_state['is_logged_in'] = False
 
-    st.sidebar.title("\ud83c\udf93 Result Management System")
+    st.sidebar.title("\U0001F393 Result Management System")  # Unicode for 🎓 emoji
 
     if st.session_state['is_logged_in']:
         if st.sidebar.button("Logout", type="secondary"):
