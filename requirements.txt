@@ -7,4 +7,4 @@ matplotlib
 plotly
 smtplib
 email-validator
-python-dotenv
+python-dotenv==0.21.0
