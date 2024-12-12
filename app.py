@@ -4,7 +4,22 @@ from models import User, Student, Result, engine
 import pandas as pd
 import bcrypt
 import plotly.express as px
-import uuid
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import random
+import string
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
+
+# Email Configuration
+SENDER_EMAIL = "jacksonnavigator19@gmail.com"
+SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")  # Store securely in .env
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
 
 # Database session
 Session = sessionmaker(bind=engine)
@@ -28,33 +43,58 @@ def logout():
     st.session_state['is_logged_in'] = False
     st.success("You have been logged out.")
 
-# Password recovery
-def recover_password():
-    st.sidebar.title("🔑 Recover Password")
-    email = st.sidebar.text_input("📧 Enter your email address")
+# Email Utility
+def send_recovery_email(recipient_email, token):
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = SENDER_EMAIL
+        msg['To'] = recipient_email
+        msg['Subject'] = "Password Recovery"
+
+        body = f"Your password recovery token is: {token}\n\nUse this token to reset your password."
+        msg.attach(MIMEText(body, 'plain'))
+
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.sendmail(SENDER_EMAIL, recipient_email, msg.as_string())
+        server.quit()
+        st.success("Recovery email sent successfully!")
+    except Exception as e:
+        st.error(f"Error sending email: {str(e)}")
+
+# Generate Token
+def generate_token():
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+
+# Password Recovery
+def password_recovery():
+    st.sidebar.title("🔑 Password Recovery")
+    email = st.sidebar.text_input("Enter your registered email")
+
     if st.sidebar.button("Send Recovery Email"):
         user = session.query(User).filter_by(email=email).first()
         if user:
-            token = str(uuid.uuid4())
-            user.reset_token = token
+            token = generate_token()
+            user.recovery_token = token
             session.commit()
-            st.success(f"A recovery email has been sent to {email} (Simulated). Token: {token}")
-            # Simulate sending email (replace with real email-sending logic)
+            send_recovery_email(email, token)
         else:
-            st.error("Email address not found.")
+            st.error("Email not found in the system.")
 
 def reset_password():
-    st.sidebar.title("🔄 Reset Password")
-    email = st.sidebar.text_input("📧 Enter your email address")
-    token = st.sidebar.text_input("🔑 Enter recovery token")
-    new_password = st.sidebar.text_input("🔒 Enter new password", type="password")
+    st.sidebar.title("🔑 Reset Password")
+    email = st.sidebar.text_input("Enter your registered email")
+    token = st.sidebar.text_input("Enter the recovery token")
+    new_password = st.sidebar.text_input("Enter new password", type="password")
+
     if st.sidebar.button("Reset Password"):
-        user = session.query(User).filter_by(email=email, reset_token=token).first()
+        user = session.query(User).filter_by(email=email, recovery_token=token).first()
         if user:
             user.password = hash_password(new_password)
-            user.reset_token = None  # Invalidate the token
+            user.recovery_token = None  # Clear token after successful reset
             session.commit()
-            st.success("Your password has been reset successfully!")
+            st.success("Password reset successful! Please log in.")
         else:
             st.error("Invalid email or token.")
 
@@ -73,6 +113,7 @@ def login():
             return user
         else:
             st.error("❌ Invalid username or password.")
+    st.sidebar.markdown("Forgot your password? [Recover it](#)", unsafe_allow_html=True)
     return None
 
 def signup():
@@ -85,119 +126,14 @@ def signup():
     if st.sidebar.button("Signup", type="primary"):
         if session.query(User).filter_by(username=username).first():
             st.error("❌ Username already exists.")
+        elif session.query(User).filter_by(email=email).first():
+            st.error("❌ Email already registered.")
         else:
             hashed_pw = hash_password(password)
             new_user = User(username=username, email=email, password=hashed_pw, role=role)
             session.add(new_user)
             session.commit()
             st.success("🎉 Signup successful! Please log in.")
-
-# Unified result view
-def view_results(student_id, student_name):
-    student = session.query(Student).filter_by(id=student_id, name=student_name).first()
-    if student:
-        st.subheader(f"📄 Results for {student.name}")
-        results = session.query(Result).filter_by(student_id=student_id).all()
-        if results:
-            data = {subject: {"Marks": "N/A", "Grade": "N/A"} for subject in SUBJECTS}
-            for result in results:
-                data[result.subject] = {"Marks": result.marks, "Grade": result.grade}
-
-            table_data = {
-                "Subject": list(data.keys()),
-                "Marks": [data[subject]["Marks"] for subject in SUBJECTS],
-                "Grade": [data[subject]["Grade"] for subject in SUBJECTS]
-            }
-
-            df = pd.DataFrame(table_data)
-            st.table(df)
-
-            # Add download button
-            csv = df.to_csv(index=False)
-            st.download_button(
-                label="📥 Download Results as CSV",
-                data=csv,
-                file_name=f"{student.name}_results.csv",
-                mime="text/csv"
-            )
-
-            # Add performance trend button
-            if st.button("📊 View Performance Trend"):
-                plot_performance_trend(df)
-        else:
-            st.info(f"ℹ️ No results found for {student.name}.")
-    else:
-        st.error("❌ Student ID and name do not match any records.")
-
-def plot_performance_trend(df):
-    st.subheader("📊 Performance Trend")
-    if "Marks" in df.columns and "Subject" in df.columns:
-        fig = px.bar(df, x="Subject", y="Marks", title="Student Performance by Subject", 
-                     labels={"Marks": "Marks", "Subject": "Subjects"}, 
-                     text_auto=True)
-        st.plotly_chart(fig)
-    else:
-        st.error("❌ Insufficient data to plot performance trend.")
-
-# Teacher dashboard
-def teacher_dashboard():
-    st.title("📚 Teacher Dashboard")
-    st.markdown("Manage student results and monitor their progress.")
-    action = st.radio("Choose Action", ["Upload Results", "View All Results"], index=0)
-
-    if action == "Upload Results":
-        st.subheader("🖋 Upload Results")
-        student_id = st.number_input("Student Id")
-        student_name = st.text_input("Student Name")
-        subject = st.selectbox("Subject", SUBJECTS)
-        marks = st.number_input("Marks", min_value=0, max_value=100, step=1)
-        grade = st.text_input("Grade")
-
-        if st.button("Upload", type="primary"):
-            student = session.query(Student).filter_by(name=student_name).first()
-            if not student:
-                new_student_id = session.query(Student).count() + 1
-                student = Student(id=new_student_id, name=student_name)
-                session.add(student)
-                session.commit()
-                st.success(f"✨ New student {student_name} added with ID {new_student_id}.")
-
-            result = Result(student_id=student.id, subject=subject, marks=marks, grade=grade)
-            session.add(result)
-            session.commit()
-            st.success(f"✅ Result for {subject} uploaded successfully for {student_name}!")
-
-    elif action == "View All Results":
-        st.subheader("📋 All Student Results")
-        students = session.query(Student).all()
-
-        if students:
-            table_data = []
-            for student in students:
-                student_results = session.query(Result).filter_by(student_id=student.id).all()
-                data = {
-                    "Student ID": student.id,
-                    "Student Name": student.name,
-                    **{f"{subject} (Marks)": "N/A" for subject in SUBJECTS},
-                    **{f"{subject} (Grade)": "N/A" for subject in SUBJECTS},
-                }
-                for result in student_results:
-                    data[f"{result.subject} (Marks)"] = result.marks
-                    data[f"{result.subject} (Grade)"] = result.grade
-                table_data.append(data)
-
-            st.dataframe(pd.DataFrame(table_data))
-        else:
-            st.info("ℹ️ No results available.")
-
-# Parent dashboard
-def parent_dashboard():
-    st.title("👨‍👩‍👦 Parent Dashboard")
-    st.markdown("View, download, and analyze your child's academic progress.")
-    student_id = st.number_input("Enter Student ID", min_value=1, step=1)
-    student_name = st.text_input("Enter Student Name")
-    if st.button("View Results", type="primary"):
-        view_results(student_id, student_name)
 
 # Main app logic
 def main():
@@ -214,10 +150,11 @@ def main():
     else:
         if st.sidebar.checkbox("Already have an account?"):
             user = login()
-        elif st.sidebar.checkbox("Forgot Password?"):
-            recover_password()
         else:
             signup()
+        st.sidebar.markdown("Forgot password? [Recover it](#)", unsafe_allow_html=True)
+        password_recovery()
+        reset_password()
 
     if st.session_state['user']:
         user = st.session_state['user']
