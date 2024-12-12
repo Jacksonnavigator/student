@@ -5,3 +5,6 @@ bcrypt
 fpdf
 matplotlib
 plotly
+smtplib
+email
+python-dotenv
