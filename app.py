@@ -147,7 +147,7 @@ def teacher_dashboard():
 
     if action == "Upload Results":
         st.subheader("🖋 Upload Results")
-        student id = st.number_input("Student Id")
+        student_id = st.number_input("Student Id")
         student_name = st.text_input("Student Name")
         subject = st.selectbox("Subject", SUBJECTS)
         marks = st.number_input("Marks", min_value=0, max_value=100, step=1)
