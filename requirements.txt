@@ -6,5 +6,5 @@ fpdf
 matplotlib
 plotly
 smtplib
-email
+email-validator
 python-dotenv
