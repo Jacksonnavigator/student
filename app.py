@@ -134,6 +134,7 @@ def teacher_dashboard():
     action = st.radio("Choose Action", ["Upload Results", "View All Results"])
     
     if action == "Upload Results":
+        student_id = st.number_input("Student Id")
         student_name = st.text_input("Student Name")
         subject = st.selectbox("Subject", SUBJECTS)
         marks = st.number_input("Marks", min_value=0, max_value=100, step=1)
