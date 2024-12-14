@@ -157,20 +157,33 @@ def teacher_dashboard():
             session.commit()
             st.success(f"✅ Result for {subject} uploaded successfully for {student_name}!")
 
-    elif action == "View All Results":
-        results = (
-            session.query(Result.id, Student.name, Result.subject, Result.marks, Result.grade)
-            .join(Student, Result.student_id == Student.id)
-            .all()
-        )
-        if results:
-            df = pd.DataFrame(
-                [(r.id, r.name, r.subject, r.marks, r.grade) for r in results],
-                columns=["Result ID", "Student Name", "Subject", "Marks", "Grade"]
-            )
-            st.dataframe(df)
-        else:
-            st.info("ℹ️ No results available.")
+   elif action == "View All Results":
+    # Fetch the results along with student names
+    results = (
+        session.query(Result.id, Student.name, Result.subject, Result.marks, Result.grade)
+        .join(Student, Result.student_id == Student.id)
+        .all()
+    )
+    
+    if results:
+        # Organize the data into a list of tuples
+        data = []
+        for result in results:
+            data.append({
+                "Student Name": result.name,
+                "Subject": result.subject,
+                "Marks": result.marks,
+                "Grade": result.grade
+            })
+
+        # Create a DataFrame from the data list
+        df = pd.DataFrame(data)
+
+        # Display the results in a table format
+        st.dataframe(df)
+    else:
+        st.info("ℹ️ No results available.")
+
 def parent_dashboard():
     st.title("👨‍👩‍👦 Parent Dashboard")
     student_id = st.number_input("Enter Student ID", min_value=1)
