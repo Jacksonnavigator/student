@@ -158,7 +158,7 @@ def teacher_dashboard():
             st.success(f"✅ Result for {subject} uploaded successfully for {student_name}!")
 
         
-        elif action == "View All Results":
+    elif action == "View All Results":
     # Fetch the results along with student names
     results = (
         session.query(Result.id, Student.name, Result.subject, Result.marks, Result.grade)
