@@ -155,14 +155,21 @@ def teacher_dashboard():
             session.commit()
             st.success(f"✅ Result uploaded successfully for {student_name} with grade {grade}!")
     
-    elif action == "View All Results":
-        results = session.query(Result).all()
-        if results:
-            df = pd.DataFrame([(r.id, r.student_id,r.student_name, r.subject, r.marks, r.grade) for r in results], 
-                              columns=["Result ID", "Student ID", "Subject", "Marks", "Grade"])
-            st.dataframe(df)
-        else:
-            st.info("ℹ️ No results available.")
+   elif action == "View All Results":
+    results = (
+        session.query(Result.id, Student.name, Result.subject, Result.marks, Result.grade)
+        .join(Student, Result.student_id == Student.id)
+        .all()
+    )
+    if results:
+        df = pd.DataFrame(
+            [(r.id, r.name, r.subject, r.marks, r.grade) for r in results],
+            columns=["Result ID", "Student Name", "Subject", "Marks", "Grade"]
+        )
+        st.dataframe(df)
+    else:
+        st.info("ℹ️ No results available.")
+
 
 def parent_dashboard():
     st.title("👨‍👩‍👦 Parent Dashboard")
