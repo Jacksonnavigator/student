@@ -129,48 +129,48 @@ def view_results(student_id, student_name):
     else:
         st.error("❌ Student ID and name do not match any records.")
 
+# Teacher dashboard
 def teacher_dashboard():
     st.title("📚 Teacher Dashboard")
-    action = st.radio("Choose Action", ["Upload Results", "View All Results"])
-    
+    st.markdown("Manage student results and monitor their progress.")
+    action = st.radio("Choose Action", ["Upload Results", "View All Results"], index=0)
+
     if action == "Upload Results":
-        st.student_id = st.number_input("Student Id")
+        st.subheader("🖋 Upload Results")
+        student_id = st.number_input("Student Name")
         student_name = st.text_input("Student Name")
         subject = st.selectbox("Subject", SUBJECTS)
         marks = st.number_input("Marks", min_value=0, max_value=100, step=1)
-        
-        # Automatically calculate the grade
-        grade = calculate_grade(marks)
-        st.write(f"Calculated Grade: **{grade}**")
+        grade = st.text_input("Grade")
 
-        if st.button("Upload"):
+        if st.button("Upload", type="primary"):
             student = session.query(Student).filter_by(name=student_name).first()
             if not student:
-                student = Student(name=student_name)
+                new_student_id = session.query(Student).count() + 1
+                student = Student(id=new_student_id, name=student_name)
                 session.add(student)
                 session.commit()
-            
+                st.success(f"✨ New student {student_name} added with ID {new_student_id}.")
+
             result = Result(student_id=student.id, subject=subject, marks=marks, grade=grade)
             session.add(result)
             session.commit()
-            st.success(f"✅ Result uploaded successfully for {student_name} with grade {grade}!")
-    
-   elif action == "View All Results":
-    results = (
-        session.query(Result.id, Student.name, Result.subject, Result.marks, Result.grade)
-        .join(Student, Result.student_id == Student.id)
-        .all()
-    )
-    if results:
-        df = pd.DataFrame(
-            [(r.id, r.name, r.subject, r.marks, r.grade) for r in results],
-            columns=["Result ID", "Student Name", "Subject", "Marks", "Grade"]
+            st.success(f"✅ Result for {subject} uploaded successfully for {student_name}!")
+
+    elif action == "View All Results":
+        results = (
+            session.query(Result.id, Student.name, Result.subject, Result.marks, Result.grade)
+            .join(Student, Result.student_id == Student.id)
+            .all()
         )
-        st.dataframe(df)
-    else:
-        st.info("ℹ️ No results available.")
-
-
+        if results:
+            df = pd.DataFrame(
+                [(r.id, r.name, r.subject, r.marks, r.grade) for r in results],
+                columns=["Result ID", "Student Name", "Subject", "Marks", "Grade"]
+            )
+            st.dataframe(df)
+        else:
+            st.info("ℹ️ No results available.")
 def parent_dashboard():
     st.title("👨‍👩‍👦 Parent Dashboard")
     student_id = st.number_input("Enter Student ID", min_value=1)
