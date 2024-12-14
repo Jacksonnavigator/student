@@ -1,5 +1,6 @@
-from sqlalchemy import Column, String, Integer, create_engine
+from sqlalchemy import Column, String, Integer, create_engine, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 
@@ -20,10 +21,15 @@ class Student(Base):
 class Result(Base):
     __tablename__ = 'results'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    student_id = Column(Integer, nullable=False)
+    student_id = Column(Integer, ForeignKey('students.id'), nullable=False)
     subject = Column(String, nullable=False)
     marks = Column(Integer, nullable=False)
     grade = Column(String, nullable=False)
+    
+    student = relationship("Student", back_populates="results")
+
+# Relationship in the Student model
+Student.results = relationship("Result", order_by=Result.id, back_populates="student")
 
 # Database engine
 engine = create_engine("sqlite:///database.db", echo=True)  # Replace with your DB URI
