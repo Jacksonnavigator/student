@@ -158,7 +158,7 @@ def teacher_dashboard():
     elif action == "View All Results":
         results = session.query(Result).all()
         if results:
-            df = pd.DataFrame([(r.id, r.student_id, r.subject, r.marks, r.grade) for r in results], 
+            df = pd.DataFrame([(r.id, r.student_id,r.student_name, r.subject, r.marks, r.grade) for r in results], 
                               columns=["Result ID", "Student ID", "Subject", "Marks", "Grade"])
             st.dataframe(df)
         else:
