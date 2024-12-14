@@ -23,25 +23,12 @@ def hash_password(password):
 def check_password(password, hashed):
     return bcrypt.checkpw(password.encode('utf-8'), hashed)
 
-def calculate_grade(marks):
-    if 75 <= marks <= 100:
-        return "A"
-    elif 65 <= marks < 75:
-        return "B"
-    elif 50 <= marks < 65:
-        return "C"
-    elif 30 <= marks < 50:
-        return "D"
-    elif 0 <= marks < 30:
-        return "F"
-    else:
-        return "Invalid Marks"
-
 def logout():
     st.session_state['user'] = None
     st.session_state['is_logged_in'] = False
     st.success("You have been logged out.")
 
+# Password recovery
 def recover_password():
     st.sidebar.title("🔑 Recover Password")
     email = st.sidebar.text_input("📧 Enter your email address")
@@ -52,6 +39,7 @@ def recover_password():
             user.reset_token = token
             session.commit()
             st.success(f"A recovery email has been sent to {email} (Simulated). Token: {token}")
+            # Simulate sending email (replace with real email-sending logic)
         else:
             st.error("Email address not found.")
 
@@ -64,17 +52,19 @@ def reset_password():
         user = session.query(User).filter_by(email=email, reset_token=token).first()
         if user:
             user.password = hash_password(new_password)
-            user.reset_token = None
+            user.reset_token = None  # Invalidate the token
             session.commit()
             st.success("Your password has been reset successfully!")
         else:
             st.error("Invalid email or token.")
 
+# User login/signup
 def login():
     st.sidebar.title("🔒 Login")
+    st.sidebar.markdown("Access your dashboard based on your role.")
     username = st.sidebar.text_input("👤 Username")
     password = st.sidebar.text_input("🔑 Password", type="password")
-    if st.sidebar.button("Login"):
+    if st.sidebar.button("Login", type="primary"):
         user = session.query(User).filter_by(username=username).first()
         if user and check_password(password, user.password):
             st.session_state['user'] = user
@@ -87,19 +77,14 @@ def login():
 
 def signup():
     st.sidebar.title("📝 Signup")
+    st.sidebar.markdown("Create a new account to access the system.")
     username = st.sidebar.text_input("👤 Username")
     email = st.sidebar.text_input("📧 Email")
     password = st.sidebar.text_input("🔑 Password", type="password")
     role = st.sidebar.selectbox("👥 Role", ["Teacher", "Parent"])
-    if st.sidebar.button("Signup"):
-        if not username or not email or not password:
-            st.error("❌ All fields are required.")
-            return
-
+    if st.sidebar.button("Signup", type="primary"):
         if session.query(User).filter_by(username=username).first():
             st.error("❌ Username already exists.")
-        elif session.query(User).filter_by(email=email).first():
-            st.error("❌ Email already exists.")
         else:
             hashed_pw = hash_password(password)
             new_user = User(username=username, email=email, password=hashed_pw, role=role)
@@ -107,27 +92,65 @@ def signup():
             session.commit()
             st.success("🎉 Signup successful! Please log in.")
 
+# Grading system
+def get_grade(marks):
+    if marks >= 75:
+        return "A"
+    elif marks >= 65:
+        return "B"
+    elif marks >= 50:
+        return "C"
+    elif marks >= 30:
+        return "D"
+    else:
+        return "F"
+
+# Unified result view
 def view_results(student_id, student_name):
     student = session.query(Student).filter_by(id=student_id, name=student_name).first()
     if student:
+        st.subheader(f"📄 Results for {student.name}")
         results = session.query(Result).filter_by(student_id=student_id).all()
         if results:
             data = {subject: {"Marks": "N/A", "Grade": "N/A"} for subject in SUBJECTS}
             for result in results:
                 data[result.subject] = {"Marks": result.marks, "Grade": result.grade}
 
-            df = pd.DataFrame({
+            table_data = {
                 "Subject": list(data.keys()),
                 "Marks": [data[subject]["Marks"] for subject in SUBJECTS],
                 "Grade": [data[subject]["Grade"] for subject in SUBJECTS]
-            })
+            }
+
+            df = pd.DataFrame(table_data)
             st.table(df)
+
+            # Add download button
             csv = df.to_csv(index=False)
-            st.download_button("📥 Download Results as CSV", csv, f"{student.name}_results.csv", "text/csv")
+            st.download_button(
+                label="📥 Download Results as CSV",
+                data=csv,
+                file_name=f"{student.name}_results.csv",
+                mime="text/csv"
+            )
+
+            # Add performance trend button
+            if st.button("📊 View Performance Trend"):
+                plot_performance_trend(df)
         else:
             st.info(f"ℹ️ No results found for {student.name}.")
     else:
         st.error("❌ Student ID and name do not match any records.")
+
+def plot_performance_trend(df):
+    st.subheader("📊 Performance Trend")
+    if "Marks" in df.columns and "Subject" in df.columns:
+        fig = px.bar(df, x="Subject", y="Marks", title="Student Performance by Subject", 
+                     labels={"Marks": "Marks", "Subject": "Subjects"}, 
+                     text_auto=True)
+        st.plotly_chart(fig)
+    else:
+        st.error("❌ Insufficient data to plot performance trend.")
 
 # Teacher dashboard
 def teacher_dashboard():
@@ -137,11 +160,11 @@ def teacher_dashboard():
 
     if action == "Upload Results":
         st.subheader("🖋 Upload Results")
-        student_id = st.number_input("Student Name")
+        student_id = st.number_input("Student ID", min_value=1, step=1)
         student_name = st.text_input("Student Name")
         subject = st.selectbox("Subject", SUBJECTS)
         marks = st.number_input("Marks", min_value=0, max_value=100, step=1)
-        grade = st.text_input("Grade")
+        grade = get_grade(marks)  # Automatically assign grade based on marks
 
         if st.button("Upload", type="primary"):
             student = session.query(Student).filter_by(name=student_name).first()
@@ -157,42 +180,43 @@ def teacher_dashboard():
             session.commit()
             st.success(f"✅ Result for {subject} uploaded successfully for {student_name}!")
 
-        
     elif action == "View All Results":
-    # Fetch the results along with student names
-    results = (
-        session.query(Result.id, Student.name, Result.subject, Result.marks, Result.grade)
-        .join(Student, Result.student_id == Student.id)
-        .all()
-    )
-    
-    if results:
-        # Organize the data into a list of tuples
-        data = []
-        for result in results:
-            data.append({
-                "Student Name": result.name,
-                "Subject": result.subject,
-                "Marks": result.marks,
-                "Grade": result.grade
-            })
+        st.subheader("📋 All Student Results")
+        results = (
+            session.query(Result.id, Student.name, Result.subject, Result.marks, Result.grade)
+            .join(Student, Result.student_id == Student.id)
+            .all()
+        )
+        
+        if results:
+            # Organize the data into a list of tuples
+            data = []
+            for result in results:
+                data.append({
+                    "Student Name": result.name,
+                    "Subject": result.subject,
+                    "Marks": result.marks,
+                    "Grade": result.grade
+                })
 
-        # Create a DataFrame from the data list
-        df = pd.DataFrame(data)
+            # Create a DataFrame from the data list
+            df = pd.DataFrame(data)
 
-        # Display the results in a table format
-        st.dataframe(df)
-    else:
-        st.info("ℹ️ No results available.")
+            # Display the results in a table format
+            st.dataframe(df)
+        else:
+            st.info("ℹ️ No results available.")
 
-
+# Parent dashboard
 def parent_dashboard():
     st.title("👨‍👩‍👦 Parent Dashboard")
-    student_id = st.number_input("Enter Student ID", min_value=1)
+    st.markdown("View, download, and analyze your child's academic progress.")
+    student_id = st.number_input("Enter Student ID", min_value=1, step=1)
     student_name = st.text_input("Enter Student Name")
-    if st.button("View Results"):
+    if st.button("View Results", type="primary"):
         view_results(student_id, student_name)
 
+# Main app logic
 def main():
     if "user" not in st.session_state:
         st.session_state['user'] = None
@@ -200,12 +224,13 @@ def main():
         st.session_state['is_logged_in'] = False
 
     st.sidebar.title("🎓 Result Management System")
+
     if st.session_state['is_logged_in']:
-        if st.sidebar.button("Logout"):
+        if st.sidebar.button("Logout", type="secondary"):
             logout()
     else:
         if st.sidebar.checkbox("Already have an account?"):
-            login()
+            user = login()
         elif st.sidebar.checkbox("Forgot Password?"):
             recover_password()
         else:
