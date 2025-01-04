@@ -204,7 +204,6 @@ def teacher_dashboard():
             st.dataframe(df.fillna("N/A"))
         else:
             st.info("ℹ️ No results available.")
-)
 
 # Parent dashboard
 def parent_dashboard():
