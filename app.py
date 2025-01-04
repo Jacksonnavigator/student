@@ -156,7 +156,7 @@ def plot_performance_trend(df):
 def teacher_dashboard():
     st.title("📚 Teacher Dashboard")
     st.markdown("Manage student results and monitor their progress.")
-    action = st.radio("Choose Action", ["Upload Results", "View All Results"], index=0)
+    action = st.radio("Choose Action", ["Upload Results", "Student Results"], index=0)
 
     if action == "Upload Results":
         st.subheader("🖋 Upload Results")
@@ -180,8 +180,8 @@ def teacher_dashboard():
             session.commit()
             st.success(f"✅ Result for {subject} uploaded successfully for {student_name}!")
 
-    elif action == "View All Results":
-        st.subheader("📋 All Student Results")
+    elif action == "Student Results":
+        st.subheader("📋 Student Results")
         results = (
             session.query(Result.id, Student.name, Result.subject, Result.marks, Result.grade)
             .join(Student, Result.student_id == Student.id)
@@ -189,23 +189,22 @@ def teacher_dashboard():
         )
         
         if results:
-            # Organize the data into a list of tuples
-            data = []
+            # Organize the data into a dictionary with nested dictionaries for students
+            data = {}
             for result in results:
-                data.append({
-                    "Student Name": result.name,
-                    "Subject": result.subject,
-                    "Marks": result.marks,
-                    "Grade": result.grade
-                })
-
-            # Create a DataFrame from the data list
-            df = pd.DataFrame(data)
+                if result.name not in data:
+                    data[result.name] = {}
+                data[result.name][result.subject] = f"{result.marks} ({result.grade})"
+            
+            # Convert the dictionary into a DataFrame
+            df = pd.DataFrame.from_dict(data, orient="index")
+            df.index.name = "Student Name"
 
             # Display the results in a table format
-            st.dataframe(df)
+            st.dataframe(df.fillna("N/A"))
         else:
             st.info("ℹ️ No results available.")
+)
 
 # Parent dashboard
 def parent_dashboard():
